@@ -294,8 +294,8 @@ def final_escape(root):
 def build_merged_tree():
     """Construct <tv> root, append channels and programmes, set metadata."""
     tv = etree.Element('tv')
-    tv.set('generator-info-name', 'mikhoul/XMLTV-EPG-Tools')
-    tv.set('generator-info-url',  'https://github.com/mikhoul/XMLTV-EPG-Tools')
+    tv.set('generator-info-name', 'DryKillLogic/XMLTV-EPG-Tools')
+    tv.set('generator-info-url',  'https://github.com/DryKillLogic/XMLTV-EPG-Tools')
     tv.set('generated-ts',        str(int(datetime.now().timestamp())))
 
     # Append canonical channels
