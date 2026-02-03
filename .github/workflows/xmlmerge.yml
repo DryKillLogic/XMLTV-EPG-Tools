@@ -3,7 +3,7 @@ name: Daily XMLTV Merger
 on:
   schedule:
     # 4 PM Eastern Time is 20:00 UTC
-    - cron: '0 20 * * *'
+    - cron: "0 20 * * *"
   workflow_dispatch:
 
 jobs:
@@ -16,11 +16,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -46,10 +48,18 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit and push merged EPG
+      - name: Commit and push merged EPG (skip if no changes)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git add output/merged.xml.gz
-          git commit -m "Update merged EPG [skip ci]" || echo "No changes to commit"
-          git push
+          git fetch --all
+          # Ensure we're on the workflow branch
+          git checkout "${GITHUB_REF#refs/heads/}" || git switch -c "${GITHUB_REF#refs/heads/}"
+          git add -A output/merged.xml.gz
+          # If there are no staged changes, skip commit and push
+          if git diff --cached --quiet; then
+            echo "No changes detected in output/merged.xml.gz — skipping commit and push."
+            exit 0
+          fi
+          git commit -m "Update merged EPG [skip ci]"
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
