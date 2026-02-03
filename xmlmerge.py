@@ -88,24 +88,40 @@ def is_fresh(fname):
 
 
 def fetch_to_cache(url):
-    """Download URL content and cache it, logging duration."""
+    """Download URL content and cache it, logging duration.
+    Detect gzipped responses even if the URL lacks a .gz extension and store cache as .gz.
+    Returns the path to the cached file or None on error.
+    """
     start = datetime.now()
     try:
         resp = requests.get(url, timeout=60)
         resp.raise_for_status()
         fname = url_to_filename(url)
-        out   = os.path.join(cache_path, fname + ('.gz' if not url.lower().endswith('.gz') else ''))
         os.makedirs(cache_path, exist_ok=True)
-        # Write raw content or compress based on URL extension
-        if url.lower().endswith('.gz'):
+
+        # Detect gzip by URL, headers or magic bytes
+        gz_magic = b'\x1f\x8b'
+        hdr_enc = resp.headers.get('Content-Encoding', '').lower()
+        hdr_type = resp.headers.get('Content-Type', '').lower()
+        is_gz = (
+            url.lower().endswith('.gz') or
+            'gzip' in hdr_enc or
+            'gzip' in hdr_type or
+            (len(resp.content) >= 2 and resp.content.startswith(gz_magic))
+        )
+
+        out = os.path.join(cache_path, fname + '.gz')  # store cached files as .gz
+        # Write raw gz bytes when already gzipped, else compress into .gz
+        if is_gz:
             with open(out, 'wb') as f:
                 f.write(resp.content)
         else:
             with gzip.open(out, 'wb') as f:
                 f.write(resp.content)
+
         duration = (datetime.now() - start).total_seconds()
-        logger.info("Fetched %s in %.2fs", url, duration)
-        return gzip.open(out, 'rt', encoding='utf-8', newline=None)
+        logger.info("Fetched %s in %.2fs (cached as %s)", url, duration, out)
+        return out
     except Exception as e:
         logger.error("Error fetching %s: %s", url, e)
         return None
@@ -114,14 +130,24 @@ def fetch_to_cache(url):
 def open_xml(source):
     """Open and parse XMLTV source from URL or local file, logging load time."""
     start = datetime.now()
+    fh = None
     if source.startswith(('http://','https://')):
         fname  = url_to_filename(source)
         cached = is_fresh(fname)
         if cached:
-            fh = gzip.open(cached, 'rt', encoding='utf-8', newline=None)
+            # open cached file according to its extension
+            if cached.endswith('.gz'):
+                fh = gzip.open(cached, 'rt', encoding='utf-8', newline=None)
+            else:
+                fh = open(cached, 'rt', encoding='utf-8')
             logger.info("Opened cached %s", source)
         else:
-            fh = fetch_to_cache(source)
+            cached_path = fetch_to_cache(source)
+            if cached_path:
+                if cached_path.endswith('.gz'):
+                    fh = gzip.open(cached_path, 'rt', encoding='utf-8', newline=None)
+                else:
+                    fh = open(cached_path, 'rt', encoding='utf-8')
         logger.info("Load time for %s: %.2fs", source, (datetime.now()-start).total_seconds())
     else:
         path = source
