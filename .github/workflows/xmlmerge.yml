@@ -2,8 +2,8 @@ name: Daily XMLTV Merger
 
 on:
   schedule:
-    # 4 PM Eastern Time is 20:00 UTC
-    - cron: "0 20 * * *"
+    # 8 PM Central European Time (CET, UTC+1) to match Open-EPG update
+    - cron: "0 19 * * *"
   workflow_dispatch:
 
 jobs:
