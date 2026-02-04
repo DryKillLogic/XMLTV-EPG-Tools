@@ -1,6 +1,7 @@
 files:
-  - https://www.open-epg.com/files/argentina4.xml.gz
-  - https://www.open-epg.com/files/argentina3.xml.gz
-  - https://www.open-epg.com/files/argentina1.xml.gz
+  - https://www.open-epg.com/files/argentina1.xml
+  - https://www.open-epg.com/files/argentina2.xml.gz
+  - https://www.open-epg.com/files/argentina5.xml.gz
   - http://m3u4u.com/epg/782dyqk443t1mkdpy4zp
   - https://www.open-epg.com/files/uruguay2.xml.gz
+  - https://www.open-epg.com/files/paraguay2.xml.gz
